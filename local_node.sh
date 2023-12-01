@@ -3,16 +3,16 @@
 KEYS[0]="dev0"
 # KEYS[1]="dev1"
 # KEYS[2]="dev2"
-CHAINID="fco_323-323"
-MONIKER="lucas"
+CHAINID="cvm_323-1"
+MONIKER="cosvm"
 # Remember to change to other types of keyring like 'file' in-case exposing to outside world,
 # otherwise your balance will be wiped quickly
 # The keyring test does not require private key to steal tokens from you
 KEYRING="test"
 KEYALGO="eth_secp256k1"
 LOGLEVEL="info"
-# Set dedicated home directory for the fcod instance
-HOMEDIR="$HOME/.fcod"
+# Set dedicated home directory for the cvmd instance
+HOMEDIR="$HOME/.cvmd"
 # to trace evm
 #TRACE="--trace"
 TRACE=""
@@ -49,23 +49,23 @@ if [[ $overwrite == "y" || $overwrite == "Y" ]]; then
 	rm -rf "$HOMEDIR"
 
 	# Set client config
-	fcod config keyring-backend $KEYRING --home "$HOMEDIR"
-	fcod config chain-id $CHAINID --home "$HOMEDIR"
+	cvmd config keyring-backend $KEYRING --home "$HOMEDIR"
+	cvmd config chain-id $CHAINID --home "$HOMEDIR"
 
 	# If keys exist they should be deleted
 	for KEY in "${KEYS[@]}"; do
-		fcod keys add $KEY --keyring-backend $KEYRING --algo $KEYALGO --home "$HOMEDIR" 
+		cvmd keys add $KEY --keyring-backend $KEYRING --algo $KEYALGO --home "$HOMEDIR" 
 	done
 
 	# Set moniker and chain-id for Evmos (Moniker can be anything, chain-id must be an integer)
-	fcod init $MONIKER -o --chain-id $CHAINID --home "$HOMEDIR"
+	cvmd init $MONIKER -o --chain-id $CHAINID --home "$HOMEDIR"
 
-	# Change parameter token denominations to fco
-	jq '.app_state["staking"]["params"]["bond_denom"]="avFCO"' "$GENESIS" >"$TMP_GENESIS" && mv "$TMP_GENESIS" "$GENESIS"
-	jq '.app_state["crisis"]["constant_fee"]["denom"]="avFCO"' "$GENESIS" >"$TMP_GENESIS" && mv "$TMP_GENESIS" "$GENESIS"
-	jq '.app_state["gov"]["deposit_params"]["min_deposit"][0]["denom"]="avFCO"' "$GENESIS" >"$TMP_GENESIS" && mv "$TMP_GENESIS" "$GENESIS"
-	jq '.app_state["evm"]["params"]["evm_denom"]="avFCO"' "$GENESIS" >"$TMP_GENESIS" && mv "$TMP_GENESIS" "$GENESIS"
-	jq '.app_state["inflation"]["params"]["mint_denom"]="avFCO"' "$GENESIS" >"$TMP_GENESIS" && mv "$TMP_GENESIS" "$GENESIS"
+	# Change parameter token denominations to cvm
+	jq '.app_state["staking"]["params"]["bond_denom"]="aCVM"' "$GENESIS" >"$TMP_GENESIS" && mv "$TMP_GENESIS" "$GENESIS"
+	jq '.app_state["crisis"]["constant_fee"]["denom"]="acvm"' "$GENESIS" >"$TMP_GENESIS" && mv "$TMP_GENESIS" "$GENESIS"
+	jq '.app_state["gov"]["deposit_params"]["min_deposit"][0]["denom"]="acvm"' "$GENESIS" >"$TMP_GENESIS" && mv "$TMP_GENESIS" "$GENESIS"
+	jq '.app_state["evm"]["params"]["evm_denom"]="acvm"' "$GENESIS" >"$TMP_GENESIS" && mv "$TMP_GENESIS" "$GENESIS"
+	jq '.app_state["inflation"]["params"]["mint_denom"]="acvm"' "$GENESIS" >"$TMP_GENESIS" && mv "$TMP_GENESIS" "$GENESIS"
 
 	# Set gas limit in genesis
 	jq '.consensus_params["block"]["max_gas"]="10000000"' "$GENESIS" >"$TMP_GENESIS" && mv "$TMP_GENESIS" "$GENESIS"
@@ -77,7 +77,7 @@ if [[ $overwrite == "y" || $overwrite == "Y" ]]; then
 	# Set claims records for validator account
 	amount_to_claim=10000
 	claims_key=${KEYS[0]}
-	node_address=$(fcod keys show $claims_key --keyring-backend $KEYRING --home "$HOMEDIR" | grep "address" | cut -c12-)
+	node_address=$(cvmd keys show $claims_key --keyring-backend $KEYRING --home "$HOMEDIR" | grep "address" | cut -c12-)
 	jq -r --arg node_address "$node_address" --arg amount_to_claim "$amount_to_claim" '.app_state["claims"]["claims_records"]=[{"initial_claimable_amount":$amount_to_claim, "actions_completed":[false, false, false, false],"address":$node_address}]' "$GENESIS" >"$TMP_GENESIS" && mv "$TMP_GENESIS" "$GENESIS"
 
 	# Set claims decay
@@ -87,7 +87,7 @@ if [[ $overwrite == "y" || $overwrite == "Y" ]]; then
 	# Claim module account:
 	# 0xA61808Fe40fEb8B3433778BBC2ecECCAA47c8c47 || evmos15cvq3ljql6utxseh0zau9m8ve2j8erz89m5wkz
 	
-	#jq -r --arg amount_to_claim "$amount_to_claim" '.app_state["bank"]["balances"] += [{"address":"pose1zmfvrprhl57jt4h20xdnmempx4d07t5a59rzt5","coins":[{"denom":"avFCO", "amount":$amount_to_claim}]}]' "$GENESIS" >"$TMP_GENESIS" && mv "$TMP_GENESIS" "$GENESIS"
+	#jq -r --arg amount_to_claim "$amount_to_claim" '.app_state["bank"]["balances"] += [{"address":"pose1zmfvrprhl57jt4h20xdnmempx4d07t5a59rzt5","coins":[{"denom":"acvm", "amount":$amount_to_claim}]}]' "$GENESIS" >"$TMP_GENESIS" && mv "$TMP_GENESIS" "$GENESIS"
 
 	if [[ $1 == "pending" ]]; then
 		if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -113,28 +113,28 @@ if [[ $overwrite == "y" || $overwrite == "Y" ]]; then
 
 	# Allocate genesis accounts (cosmos formatted addresses)
 	for KEY in "${KEYS[@]}"; do
-		fcod add-genesis-account $KEY 10000000000000000000000000000avFCO --keyring-backend $KEYRING --home "$HOMEDIR"
-		# fcod add-genesis-account $KEY 100000000000000000000000000avFCO --keyring-backend $KEYRING --home "$HOMEDIR"
+		cvmd add-genesis-account $KEY 10000000000acvm --keyring-backend $KEYRING --home "$HOMEDIR"
+		# cvmd add-genesis-account $KEY 10000000000acvm --keyring-backend $KEYRING --home "$HOMEDIR"
 	done
 
 	# bc is required to add these big numbers
-	total_supply=$(echo "${#KEYS[@]} * 100000000000000000000000000" | bc)
+	total_supply=$(echo "${#KEYS[@]} * 10000000000" | bc)
 	jq -r --arg total_supply "$total_supply" '.app_state["bank"]["supply"][0]["amount"]=$total_supply' "$GENESIS" >"$TMP_GENESIS" && mv "$TMP_GENESIS" "$GENESIS"
 
 	# Sign genesis transaction
-	fcod gentx ${KEYS[0]} 100000000000000000000000avFCO --keyring-backend $KEYRING --chain-id $CHAINID --home "$HOMEDIR"
+	cvmd gentx ${KEYS[0]} 10000000000acvm --keyring-backend $KEYRING --chain-id $CHAINID --home "$HOMEDIR"
 	## In case you want to create multiple validators at genesis
-	## 1. Back to `fcod keys add` step, init more keys
-	## 2. Back to `fcod add-genesis-account` step, add balance for those
-	## 3. Clone this ~/.fcod home directory into some others, let's say `~/.clonedcomposed`
+	## 1. Back to `cvmd keys add` step, init more keys
+	## 2. Back to `cvmd add-genesis-account` step, add balance for those
+	## 3. Clone this ~/.cvmd home directory into some others, let's say `~/.clonedcomposed`
 	## 4. Run `gentx` in each of those folders
-	## 5. Copy the `gentx-*` folders under `~/.clonedcomposed/config/gentx/` folders into the original `~/.fcod/config/gentx`
+	## 5. Copy the `gentx-*` folders under `~/.clonedcomposed/config/gentx/` folders into the original `~/.cvmd/config/gentx`
 
 	# Collect genesis tx
-	fcod collect-gentxs --home "$HOMEDIR"
+	cvmd collect-gentxs --home "$HOMEDIR"
 
 	# Run this to ensure everything worked and that the genesis file is setup correctly
-	fcod validate-genesis --home "$HOMEDIR"
+	cvmd validate-genesis --home "$HOMEDIR"
 
 	if [[ $1 == "pending" ]]; then
 		echo "pending mode is on, please wait for the first block committed."
@@ -142,5 +142,5 @@ if [[ $overwrite == "y" || $overwrite == "Y" ]]; then
 fi
 
 # Start the node (remove the --pruning=nothing flag if historical queries are not needed)
-#fcod start --pruning=nothing "$TRACE" --gas-prices 0.00001avFCO --gas-adjustment 1.3 --log_level $LOGLEVEL --json-rpc.api eth,txpool,personal,net,debug,web3 --api.enable --home "$HOMEDIR"
-fcod start --pruning=nothing "$TRACE" --rpc.laddr tcp://0.0.0.0:26657 --gas-prices 0.00001avFCO --gas-adjustment 1.3 --log_level $LOGLEVEL --json-rpc.api eth,txpool,personal,net,debug,web3 --api.enable --home "$HOMEDIR"
+#cvmd start --pruning=nothing "$TRACE" --gas-prices 0.00001acvm --gas-adjustment 1.3 --log_level $LOGLEVEL --json-rpc.api eth,txpool,personal,net,debug,web3 --api.enable --home "$HOMEDIR"
+cvmd start --pruning=nothing "$TRACE" --rpc.laddr tcp://0.0.0.0:26657 --gas-prices 0.00001acvm --gas-adjustment 1.3 --log_level $LOGLEVEL --json-rpc.api eth,txpool,personal,net,debug,web3 --api.enable --home "$HOMEDIR"
